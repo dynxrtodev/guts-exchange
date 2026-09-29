@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e16">
+<title>GutS Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<style>
+:root{--bg:#0a0e16;--panel:#111826;--card:#171f30;--line:#232e45;--tx:#eef2f8;--mut:#8b98b3;--dim:#5b6785;--up:#22c58b;--dn:#f0506e;--ac:#5ab8ff;--gold:#f5b342}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:Manrope,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+.mono{font-family:'JetBrains Mono',monospace}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+svg.lucide{width:1.15em;height:1.15em;stroke-width:2;flex:none}
+.top{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(10,14,22,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.05rem}
+.brand svg{color:var(--ac)}
+.tr{display:flex;align-items:center;gap:10px}
+.timer{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--mut);background:var(--panel);border:1px solid var(--line);padding:5px 10px;border-radius:999px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--up);animation:pl 1.6s infinite}
+@keyframes pl{50%{opacity:.35}}
+.av{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:var(--card)}
+.wrap{max-width:760px;margin:0 auto;padding:14px 14px 0}
+.page{display:none}
+.page.on{display:block}
+h2{font-size:1.25rem;font-weight:800;margin:4px 0 12px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.ttl{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700;color:var(--mut);margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat span{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--mut);font-weight:600}
+.stat b{display:block;margin-top:5px;font-size:1.05rem}
+.hero{background:linear-gradient(160deg,#16233c,#0f1726);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:12px}
+.hero span{font-size:.78rem;color:var(--mut);font-weight:600}
+.hero b{display:block;font-size:1.9rem;margin:6px 0 2px;letter-spacing:-.5px}
+.hero em{font-style:normal;font-size:.75rem;color:var(--ac)}
+.ev-banner{display:none;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:12px;margin-bottom:12px;font-size:.78rem;font-weight:700;background:rgba(240,80,110,.14);border:1px solid var(--dn);color:#ffb4c2}
+.ev-banner.bull{background:rgba(34,197,139,.14);border-color:var(--up);color:#9ef5d2}
+.coin{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px;border-radius:12px;background:var(--card);border:1px solid transparent;margin-bottom:8px;text-align:left}
+.coin.on{border-color:var(--ac)}
+.cl{display:flex;align-items:center;gap:11px}
+.ci{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.9rem;color:#fff}
+.c-guts{background:linear-gradient(135deg,#6366f1,#a855f7)}.c-btc{background:linear-gradient(135deg,#f59e0b,#d97706)}.c-eth{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}.c-sol{background:linear-gradient(135deg,#14b8a6,#9333ea)}
+.cn{font-weight:700;font-size:.92rem}
+.cs{font-size:.72rem;color:var(--mut);margin-top:2px}
+.cr{text-align:right}
+.cp{font-weight:700;font-size:.92rem}
+.pc{display:inline-block;margin-top:3px;padding:2px 7px;border-radius:6px;font-size:.7rem;font-weight:700}
+.u{background:rgba(34,197,139,.14);color:var(--up)}.d{background:rgba(240,80,110,.14);color:var(--dn)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.chip{padding:7px 13px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:.78rem;font-weight:700;color:var(--mut);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#06121f}
+.ph{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:10px}
+.ph h3{font-size:1.1rem;font-weight:800}
+.ph small{color:var(--mut);font-size:.72rem}
+.ph .big{font-size:1.5rem;font-weight:800;text-align:right}
+.mets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.mets div{font-size:.68rem;color:var(--mut);background:var(--card);border-radius:10px;padding:8px 10px}
+.mets b{display:block;color:var(--tx);font-size:.8rem;margin-top:2px}
+.cv{position:relative;height:290px;background:#0b1019;border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:pan-y}
+canvas{width:100%;height:100%;display:block}
+.hv{position:absolute;top:8px;left:10px;font-size:.68rem;color:var(--mut);background:rgba(10,14,22,.8);padding:4px 8px;border-radius:8px;pointer-events:none}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:var(--bg);padding:4px;border-radius:12px;margin-bottom:12px;border:1px solid var(--line)}
+.seg button{padding:10px;border-radius:9px;font-weight:800;font-size:.85rem;color:var(--mut)}
+.seg .buy.on{background:var(--up);color:#04160f}.seg .sell.on{background:var(--dn);color:#fff}
+.lb{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mut);margin-bottom:6px}
+.inp{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:0 12px;margin-bottom:12px}
+.inp:focus-within{border-color:var(--ac)}
+.inp input,.inp select{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--tx);padding:12px 0;font:700 .95rem 'JetBrains Mono',monospace}
+.inp select option{background:var(--panel);color:var(--tx)}
+.inp em{font-style:normal;font-size:.78rem;font-weight:700;color:var(--mut)}
+.pcts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.pcts button{padding:8px;border-radius:8px;background:var(--card);border:1px solid var(--line);font:700 .75rem 'JetBrains Mono',monospace;color:var(--mut)}
+.sum{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:.78rem;margin-bottom:12px;display:grid;gap:7px}
+.sum div{display:flex;justify-content:space-between;color:var(--mut)}
+.sum b{color:var(--tx)}
+.go{width:100%;padding:13px;border-radius:12px;font-weight:800;font-size:.9rem;display:flex;justify-content:center;align-items:center;gap:8px}
+.go.buy{background:var(--up);color:#04160f}.go.sell{background:var(--dn);color:#fff}.go.gold{background:var(--gold);color:#1a1002}
+.go:disabled{opacity:.5}
+.ob{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.74rem}
+.ob div div{display:flex;justify-content:space-between;padding:4px 7px;border-radius:5px;margin-bottom:3px}
+.bid div{color:var(--up);background:rgba(34,197,139,.07)}.ask div{color:var(--dn);background:rgba(240,80,110,.07)}
+.ob h4{font-size:.7rem;color:var(--dim);margin-bottom:5px}
+.bar{height:8px;border-radius:999px;background:var(--card);display:flex;overflow:hidden;margin:6px 0 12px}
+.bar i{display:block;height:100%}
+.hr{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.hr:last-child{border:0}
+.hi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center}
+.hi.u{background:rgba(34,197,139,.14)}.hi.d{background:rgba(240,80,110,.14)}
+.hl{display:flex;align-items:center;gap:11px}
+.hn{font-weight:700;font-size:.88rem}
+.hs{font-size:.7rem;color:var(--mut);margin-top:2px}
+.empty{text-align:center;color:var(--dim);padding:28px 10px;font-size:.85rem;display:grid;gap:8px;justify-items:center}
+.empty svg{width:28px;height:28px}
+.acc{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.acc img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--ac)}
+.acc b{font-size:1.05rem}
+.acc small{display:block;color:var(--mut);margin-top:3px;font-size:.78rem}
+.row{display:flex;gap:8px}
+.row .go{flex:1}
+.ghost{background:var(--card);border:1px solid var(--line);color:var(--tx)}
+.tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.tbl th{text-align:left;color:var(--mut);font-size:.7rem;padding:6px 4px;border-bottom:1px solid var(--line)}
+.tbl td{padding:11px 4px;border-bottom:1px solid var(--line)}
+.tbl tr:last-child td{border:0}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(17,24,38,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.nav.admin-mode{grid-template-columns:repeat(6,1fr)}
+.nav button{display:grid;justify-items:center;gap:3px;padding:7px 0;border-radius:12px;font-size:.65rem;font-weight:700;color:var(--dim)}
+.nav button svg{width:20px;height:20px}
+.nav button.on{color:var(--ac);background:rgba(90,184,255,.1)}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--card);border:1px solid var(--ac);padding:11px 16px;border-radius:12px;font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:8px;z-index:60;max-width:92vw;transition:.25s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{border-color:var(--dn)}.toast.ok{border-color:var(--up)}
+@media(min-width:900px){.wrap{max-width:860px}.cv{height:360px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><i data-lucide="candlestick-chart"></i>GutS Exchange</div>
+  <div class="tr">
+    <div class="timer"><span class="dot"></span><span class="mono" id="cd">00:00</span></div>
+    <button onclick="go('account')" aria-label="Akun"><img class="av" id="avTop" src="https://telegra.ph/file/24fa902ead26340f3df2c.png" alt=""></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="ev-banner" id="evBanner">
+    <span id="evBannerTxt">🚨 MARKET CRASH SEDANG BERLANGSUNG!</span>
+    <span class="mono" id="evBannerTime">LIVE</span>
+  </div>
+
+  <section class="page on" id="p-market">
+    <h2>Pasar</h2>
+    <div class="hero">
+      <span>Total kekayaan</span>
+      <b class="mono" id="heroNet">$0</b>
+      <em id="heroSub">Masuk untuk melihat saldo</em>
+    </div>
+    <div class="box">
+      <div class="ttl"><span>Pasar spot USD</span><span class="mono">Update 5 menit</span></div>
+      <div id="mList"></div>
+    </div>
+  </section>
+
+  <section class="page" id="p-trade">
+    <div class="chips" id="tChips"></div>
+    <div class="box">
+      <div class="ph">
+        <div><h3 id="pName">GUTS / USD</h3><small id="pFull"></small></div>
+        <div><div class="big mono" id="pPrice">$0</div><span class="pc u mono" id="pChg">+0%</span></div>
+      </div>
+      <div class="mets mono">
+        <div>Tertinggi 24j<b id="mHi">$0</b></div>
+        <div>Terendah 24j<b id="mLo">$0</b></div>
+        <div>Siklus<b>5 menit</b></div>
+      </div>
+      <div class="row" style="margin-bottom:10px;justify-content:space-between">
+        <div class="chips" style="margin:0" id="rChips"></div>
+        <div class="chips" style="margin:0">
+          <button class="chip on" id="bCandle" onclick="setType('candle')"><i data-lucide="candlestick-chart"></i>Candle</button>
+          <button class="chip" id="bArea" onclick="setType('area')"><i data-lucide="area-chart"></i>Area</button>
+        </div>
+      </div>
+      <div class="cv"><div class="hv mono" id="hv">Sentuh grafik untuk detail OHLC</div><canvas id="cv"></canvas></div>
+    </div>
+
+    <div class="box">
+      <div class="ttl"><span>Order pasar</span><span class="mono" id="tBadge">GUTS</span></div>
+      <div class="seg">
+        <button class="buy on" id="sBuy" onclick="side('buy')">Beli</button>
+        <button class="sell" id="sSell" onclick="side('sell')">Jual</button>
+      </div>
+      <div class="lb"><span>Harga eksekusi</span><span class="mono">Market</span></div>
+      <div class="inp"><input class="mono" id="iPrice" readonly><em>USD</em></div>
+      <div class="lb"><span>Jumlah koin</span><span class="mono" id="lAvail">Saldo: $0</span></div>
+      <div class="inp"><input id="iAmt" type="number" inputmode="decimal" step="0.0001" min="0" placeholder="0.00" oninput="sumUp()"><em id="iSuf">GUTS</em></div>
+      <div class="pcts">
+        <button onclick="fill(.25)">25%</button><button onclick="fill(.5)">50%</button><button onclick="fill(.75)">75%</button><button onclick="fill(1)">MAX</button>
+      </div>
+      <div class="sum mono">
+        <div><span>Harga per koin</span><b id="sUnit">$0</b></div>
+        <div><span>Biaya bursa</span><b style="color:var(--up)">Gratis</b></div>
+        <div><span id="sLbl">Total bayar</span><b id="sTot" style="color:var(--ac)">$0</b></div>
+      </div>
+      <button class="go buy" id="goBtn" onclick="trade()"><i data-lucide="zap"></i><span id="goTxt">Beli GUTS</span></button>
+    </div>
+
+    <div class="box">
+      <div class="ttl"><span>Order book</span><span class="mono">Simulasi</span></div>
+      <div class="ob mono">
+        <div class="bid"><h4>Bid</h4><div id="obB" style="display:block;padding:0;background:none"></div></div>
+        <div class="ask"><h4>Ask</h4><div id="obA" style="display:block;padding:0;background:none"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="p-portfolio">
+    <h2>Portofolio</h2>
+    <div class="hero">
+      <span>Nilai bersih</span>
+      <b class="mono" id="pfNet">$0</b>
+      <em id="pfCnt">0 aset aktif</em>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="stat"><span><i data-lucide="wallet"></i>Saldo cash</span><b class="mono" id="pfCash">$0</b></div>
+      <div class="stat"><span><i data-lucide="coins"></i>Nilai crypto</span><b class="mono" id="pfCrypto">$0</b></div>
+    </div>
+    <div class="box">
+      <div class="ttl"><span>Alokasi</span></div>
+      <div class="bar" id="pfBar"></div>
+      <div id="pfLeg" style="display:flex;gap:12px;flex-wrap:wrap;font-size:.72rem;color:var(--mut)"></div>
+    </div>
+    <div class="box">
+      <div class="ttl"><span>Aset kamu</span><button class="chip" onclick="refresh(true)"><i data-lucide="refresh-cw"></i>Sinkronkan</button></div>
+      <div style="overflow-x:auto">
+        <table class="tbl mono"><thead><tr><th>Aset</th><th>Saldo</th><th>Nilai</th><th></th></tr></thead><tbody id="pfBody"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="p-history">
+    <h2>Riwayat</h2>
+    <div class="box">
+      <div class="ttl"><span>Transaksi akun ini</span><button class="chip" onclick="clearHist()"><i data-lucide="trash-2"></i>Hapus</button></div>
+      <div id="hList"></div>
+    </div>
+  </section>
+
+  <section class="page" id="p-account">
+    <h2>Akun</h2>
+    <div class="box">
+      <div class="acc">
+        <img id="avBig" src="https://telegra.ph/file/24fa902ead26340f3df2c.png" alt="">
+        <div><b id="aName">Belum masuk</b><small id="aPhone">Mode tamu</small></div>
+      </div>
+      <div class="lb"><span>Secret Key dari bot WhatsApp</span></div>
+      <div class="inp"><i data-lucide="key-round" style="color:var(--dim);margin-right:8px"></i><input class="mono" id="iKey" placeholder="GUTS-XXXX-XXXX" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"></div>
+      <p style="font-size:.76rem;color:var(--mut);line-height:1.5;margin-bottom:14px">Kirim perintah <code>.secretkey</code> ke chat pribadi bot GutS | MD untuk mendapatkan kode.</p>
+      <div class="row">
+        <button class="go buy" id="loginBtn" onclick="login()"><i data-lucide="log-in"></i>Hubungkan wallet</button>
+        <button class="go ghost" id="outBtn" onclick="logout()" style="display:none"><i data-lucide="log-out"></i>Keluar</button>
+      </div>
+    </div>
+    <div class="box">
+      <div class="ttl"><span>Status</span></div>
+      <div class="sum mono">
+        <div><span>Koneksi</span><b id="aStat" style="color:var(--gold)">Tamu</b></div>
+        <div><span>Sinkron terakhir</span><b id="aSync">-</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALAMAN KHUSUS OWNER: BANDAR MARKET MANIPULATOR -->
+  <section class="page" id="p-admin">
+    <h2>👑 Ruang Kendali Bandar (God Mode)</h2>
+    <div class="hero" style="background:linear-gradient(160deg,#3b1222,#111826);border-color:var(--dn)">
+      <span>Status Manipulasi Pasar</span>
+      <b class="mono" id="admEventTitle" style="font-size:1.35rem">NORMAL MARKET (1.00x)</b>
+      <em id="admEventExp" style="color:var(--gold)">Harga bergerak organik + Random Crash alami</em>
+    </div>
+
+    <div class="box">
+      <div class="ttl"><span>⚡ Preset Skenario Instan (1-Klik)</span><span>Auto-Sync WA & Web</span></div>
+      <div class="grid2" style="margin-bottom:8px">
+        <button class="go sell" onclick="applyPreset('BLACK SWAN CRASH (-70%)',{guts:.3,btc:.3,eth:.3,sol:.3})"><i data-lucide="trending-down"></i>Crash Semua -70%</button>
+        <button class="go buy" onclick="applyPreset('MEGA BULL RUN (+150%)',{guts:2.5,btc:2.5,eth:2.5,sol:2.5})"><i data-lucide="trending-up"></i>Pump Semua +150%</button>
+      </div>
+      <div class="grid2">
+        <button class="go gold" onclick="applyPreset('RUGPULL GUTS & BTC (-88%)',{guts:.12,btc:.12,eth:1,sol:1})"><i data-lucide="flame"></i>Rugpull GUTS & BTC</button>
+        <button class="go ghost" onclick="applyPreset('',{guts:1,btc:1,eth:1,sol:1},true)"><i data-lucide="rotate-ccw"></i>Reset Pasar Normal</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="ttl"><span>🎚️ Atur Multiplier Harga Per Koin</span><span class="mono">0.05x s/d 10x</span></div>
+      <div class="grid2">
+        <div>
+          <div class="lb"><span>GUTS Multiplier</span><b class="mono" id="lblMguts">1.00x</b></div>
+          <div class="inp"><input type="number" step="0.05" min="0.05" max="20" id="mGuts" value="1" oninput="$('lblMguts').textContent=this.value+'x'"><em>x</em></div>
+        </div>
+        <div>
+          <div class="lb"><span>BTC Multiplier</span><b class="mono" id="lblMbtc">1.00x</b></div>
+          <div class="inp"><input type="number" step="0.05" min="0.05" max="20" id="mBtc" value="1" oninput="$('lblMbtc').textContent=this.value+'x'"><em>x</em></div>
+        </div>
+        <div>
+          <div class="lb"><span>ETH Multiplier</span><b class="mono" id="lblMeth">1.00x</b></div>
+          <div class="inp"><input type="number" step="0.05" min="0.05" max="20" id="mEth" value="1" oninput="$('lblMeth').textContent=this.value+'x'"><em>x</em></div>
+        </div>
+        <div>
+          <div class="lb"><span>SOL Multiplier</span><b class="mono" id="lblMsol">1.00x</b></div>
+          <div class="inp"><input type="number" step="0.05" min="0.05" max="20" id="mSol" value="1" oninput="$('lblMsol').textContent=this.value+'x'"><em>x</em></div>
+        </div>
+      </div>
+
+      <div class="lb"><span>Judul Headline Event</span></div>
+      <div class="inp"><input type="text" id="admTitle" placeholder="Contoh: WHALE DUMP! BTC ANJLOK PARAH!"></div>
+
+      <div class="lb"><span>Pesan Tambahan Broadcast ke Grup WA (Opsional)</span></div>
+      <div class="inp"><input type="text" id="admMsg" placeholder="Contoh: Buruan serok bawah atau cutloss sekarang!"></div>
+
+      <div class="lb"><span>Durasi Manipulasi Pasar</span></div>
+      <div class="inp">
+        <select id="admDur">
+          <option value="900000">15 Menit</option>
+          <option value="1800000">30 Menit</option>
+          <option value="3600000" selected>1 Jam</option>
+          <option value="10800000">3 Jam</option>
+          <option value="0">Permanen (Sampai Direset)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button class="go buy" onclick="saveMarketControl(false)"><i data-lucide="save"></i>Terapkan Diam-Diam</button>
+        <button class="go sell" onclick="saveMarketControl(true)"><i data-lucide="megaphone"></i>Terapkan + Broadcast WA</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="ttl"><span>🏦 Sidak Pajak Kekayaan Sultan (Wealth Tax Raid)</span></div>
+      <p style="font-size:.76rem;color:var(--mut);line-height:1.5;margin-bottom:12px">Potong langsung uang cash & aset crypto milik seluruh Sultan (Kekayaan &gt; $100 Juta) di <code>rpg.json</code> dan umumkan ke grup!</p>
+      <div class="lb"><span>Persentase Pemotongan Pajak (1% - 40%)</span></div>
+      <div class="inp"><input type="number" id="admTaxRate" min="1" max="40" value="10"><em>%</em></div>
+      <button class="go gold" onclick="triggerTaxRaid()"><i data-lucide="landmark"></i>Eksekusi Sidak Pajak Sekarang</button>
+    </div>
+  </section>
+</div>
+
+<nav class="nav" id="bottomNav">
+  <button data-p="market" class="on"><i data-lucide="layout-list"></i>Pasar</button>
+  <button data-p="trade"><i data-lucide="line-chart"></i>Grafik</button>
+  <button data-p="portfolio"><i data-lucide="pie-chart"></i>Portofolio</button>
+  <button data-p="history"><i data-lucide="history"></i>Riwayat</button>
+  <button data-p="account"><i data-lucide="user-round"></i>Akun</button>
+  <button data-p="admin" id="navAdminBtn" style="display:none;color:var(--gold)"><i data-lucide="crown"></i></button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const DB="https://chess-bc7fa-default-rtdb.asia-southeast1.firebasedatabase.app";
+const SLOT=300000;
+const OWNER_NUMS=['6287841489287','6287851101531'];
+const META={
+  guts:{symbol:'GUTS',name:'GUTS Coin',seed:1,base:200,range:1300,vol:35,cls:'c-guts'},
+  btc:{symbol:'BTC',name:'Bitcoin',seed:2,base:15000,range:20000,vol:20,cls:'c-btc'},
+  eth:{symbol:'ETH',name:'Ethereum',seed:3,base:3000,range:5000,vol:25,cls:'c-eth'},
+  sol:{symbol:'SOL',name:'Solana',seed:4,base:600,range:1900,vol:30,cls:'c-sol'}
+};
+const COLORS={guts:'#a06cf0',btc:'#f5a623',eth:'#4a86f0',sol:'#20c4b0'};
+const $=id=>document.getElementById(id);
+const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+const qty=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:4});
+
+let coin='guts',tside='buy',ctype='candle',range=36,user=null,mk={},candles=[],hover=null,page='market',hist=[];
+let mCtrl={mult:{guts:1,btc:1,eth:1,sol:1},eventName:'',expiresAt:0};
+
+function seedRand(slot,seed){const x=Math.sin(slot*999+seed*77)*10000;return x-Math.floor(x)}
+function naturalEventMult(slot,seed){
+  const r=seedRand(slot+33,seed*19);
+  if(r<0.045)return 0.38; // 4.5% peluang Natural Flash Crash (-62%)
+  if(r>0.975)return 1.65; // 2.5% peluang Natural Whale Pump (+65%)
+  return 1.0;
+}
+function isCtrlActive(){
+  return mCtrl&&(mCtrl.expiresAt===0||Date.now()<mCtrl.expiresAt);
+}
+function priceAt(k,slot,applyAdmin=false){
+  const m=META[k],p=seedRand(slot,m.seed);
+  const raw=m.base+p*m.range;
+  const nat=naturalEventMult(slot,m.seed);
+  const adm=(applyAdmin&&isCtrlActive())?(Number(mCtrl.mult?.[k])||1):1;
+  const tot=nat*adm;
+  const price=Math.max(1,Math.floor(raw*tot));
+  let chg=(p-.48)*m.vol;
+  if(tot!==1)chg+=(tot-1)*100;
+  return{price,change:parseFloat(chg.toFixed(2)),tot};
+}
+function markets(){
+  const cur=Math.floor(Date.now()/SLOT);
+  for(const k in META){
+    const c=priceAt(k,cur,true);let hi=c.price,lo=c.price;
+    for(let i=1;i<=24;i++){const p=priceAt(k,cur-i,false).price;if(p>hi)hi=p;if(p<lo)lo=p}
+    mk[k]={...META[k],price:c.price,change:c.change,high:hi,low:lo};
+  }
+}
+function buildCandles(){
+  const cur=Math.floor(Date.now()/SLOT),m=META[coin],list=[];
+  for(let i=range-1;i>=0;i--){
+    const s=cur-i;
+    const o=priceAt(coin,s-1,i===0).price;
+    const c=priceAt(coin,s,i===0).price;
+    const sp=Math.max(15,Math.floor(m.range*.06));
+    const hi=Math.max(o,c)+Math.floor(seedRand(s+7,m.seed*3)*sp);
+    const lo=Math.max(1,Math.min(o,c)-Math.floor(seedRand(s+13,m.seed*5)*sp));
+    list.push({t:new Date(s*SLOT).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}),open:o,high:hi,low:lo,close:c});
+  }
+  candles=list;
+}
+
+async function fetchMarketControl(){
+  try{
+    const r=await fetch(`${DB}/wa_users/_market_control.json`);
+    const d=await r.json();
+    if(d&&typeof d==='object'){
+      mCtrl={
+        mult:d.mult||{guts:1,btc:1,eth:1,sol:1},
+        eventName:d.eventName||'',
+        expiresAt:Number(d.expiresAt)||0
+      };
+    }
+  }catch(_){}
+}
+
+const cv=$('cv'),cx=cv.getContext('2d');
+const PAD={t:26,b:26,r:64,l:10};
+function draw(){
+  if(!candles.length||page!=='trade')return;
+  const dpr=window.devicePixelRatio||1,r=cv.getBoundingClientRect();
+  cv.width=r.width*dpr;cv.height=r.height*dpr;cx.setTransform(dpr,0,0,dpr,0,0);
+  const W=r.width,H=r.height,cw=W-PAD.l-PAD.r,ch=H-PAD.t-PAD.b;
+  let mx=Math.max(...candles.map(c=>c.high)),mn=Math.min(...candles.map(c=>c.low));
+  if(mx===mn){mx+=100;mn-=100}
+  const Y=p=>PAD.t+ch-((p-mn)/(mx-mn))*ch,step=cw/candles.length;
+  cx.font='11px "JetBrains Mono",monospace';cx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=PAD.t+ch/4*i;
+    cx.strokeStyle='rgba(35,46,69,.8)';cx.beginPath();cx.moveTo(PAD.l,y);cx.lineTo(W-PAD.r,y);cx.stroke();
+    cx.fillStyle='#5b6785';cx.textAlign='left';cx.fillText(fmt(mx-(mx-mn)/4*i),W-PAD.r+6,y+4);
+  }
+  if(ctype==='area'){
+    cx.beginPath();
+    candles.forEach((c,i)=>{const x=PAD.l+i*step+step/2;i?cx.lineTo(x,Y(c.close)):cx.moveTo(x,Y(c.close))});
+    cx.strokeStyle='#5ab8ff';cx.lineWidth=2.4;cx.stroke();
+    const g=cx.createLinearGradient(0,PAD.t,0,PAD.t+ch);
+    g.addColorStop(0,'rgba(90,184,255,.3)');g.addColorStop(1,'rgba(90,184,255,0)');
+    cx.lineTo(PAD.l+(candles.length-1)*step+step/2,PAD.t+ch);cx.lineTo(PAD.l+step/2,PAD.t+ch);cx.closePath();cx.fillStyle=g;cx.fill();
+  }else{
+    const bw=Math.max(3,Math.min(16,step*.62));
+    candles.forEach((c,i)=>{
+      const x=PAD.l+i*step+step/2,col=c.close>=c.open?'#22c58b':'#f0506e';
+      cx.strokeStyle=col;cx.lineWidth=1.3;cx.beginPath();cx.moveTo(x,Y(c.high));cx.lineTo(x,Y(c.low));cx.stroke();
+      const a=Y(c.open),b=Y(c.close);cx.fillStyle=col;cx.fillRect(x-bw/2,Math.min(a,b),bw,Math.max(3,Math.abs(b-a)));
+    });
+  }
+  const ly=Y(candles[candles.length-1].close);
+  cx.save();cx.setLineDash([4,4]);cx.strokeStyle='#5ab8ff';cx.lineWidth=1;cx.beginPath();cx.moveTo(PAD.l,ly);cx.lineTo(W-PAD.r,ly);cx.stroke();cx.restore();
+  cx.fillStyle='#5b6785';cx.textAlign='center';
+  const every=Math.ceil(candles.length/6);
+  for(let i=0;i<candles.length;i+=every)cx.fillText(candles[i].t,PAD.l+i*step+step/2,H-8);
+  if(hover){
+    cx.save();cx.setLineDash([3,3]);cx.strokeStyle='rgba(238,242,248,.4)';cx.beginPath();cx.moveTo(hover.x,PAD.t);cx.lineTo(hover.x,PAD.t+ch);cx.stroke();cx.restore();
+  }
+}
+function pointer(e){
+  const r=cv.getBoundingClientRect(),step=(r.width-PAD.l-PAD.r)/candles.length;
+  const i=Math.floor((e.clientX-r.left-PAD.l)/step);
+  if(i<0||i>=candles.length)return;
+  const c=candles[i];hover={x:PAD.l+i*step+step/2};
+  $('hv').innerHTML=`${c.t} &nbsp;O ${fmt(c.open)} &nbsp;H <b style="color:var(--up)">${fmt(c.high)}</b> &nbsp;L <b style="color:var(--dn)">${fmt(c.low)}</b> &nbsp;C ${fmt(c.close)}`;
+  draw();
+}
+function unhover(){hover=null;$('hv').textContent='Sentuh grafik untuk detail OHLC';draw()}
+cv.addEventListener('pointermove',pointer);
+cv.addEventListener('pointerdown',pointer);
+cv.addEventListener('pointerleave',unhover);
+window.addEventListener('resize',draw);
+
+function icons(){if(window.lucide)lucide.createIcons()}
+
+function render(){
+  markets();buildCandles();
+  const money=user?.money||0;let cryptoVal=0,active=0;
+  const vals={};
+  for(const k in mk){const b=user?.crypto?.[k]||0;vals[k]=Math.floor(b*mk[k].price);cryptoVal+=vals[k];if(b>0)active++}
+  const net=money+cryptoVal;
+
+  // Banner Event Crash / Pump
+  const bnr=$('evBanner');
+  if(isCtrlActive()&&mCtrl.eventName){
+    const avgM=(Number(mCtrl.mult.guts)+Number(mCtrl.mult.btc)+Number(mCtrl.mult.eth)+Number(mCtrl.mult.sol))/4;
+    bnr.style.display='flex';
+    bnr.className='ev-banner '+(avgM>=1?'bull':'');
+    $('evBannerTxt').textContent=`⚡ ${mCtrl.eventName}`;
+    $('evBannerTime').textContent=mCtrl.expiresAt?`Sisa ${Math.max(1,Math.ceil((mCtrl.expiresAt-Date.now())/60000))}m`:'AKTIF';
+    $('admEventTitle').textContent=mCtrl.eventName;
+    $('admEventExp').textContent=`GUTS ${mCtrl.mult.guts}x | BTC ${mCtrl.mult.btc}x | ETH ${mCtrl.mult.eth}x | SOL ${mCtrl.mult.sol}x`;
+  }else{
+    bnr.style.display='none';
+    $('admEventTitle').textContent='NORMAL MARKET (1.00x)';$('admEventExp').textContent='Harga bergerak organik + Random Crash alami';
+  }
+
+  $('mList').innerHTML=Object.entries(mk).map(([k,v])=>{
+    const up=v.change>=0,b=user?.crypto?.[k]||0;
+    return `<button class="coin ${k===coin?'on':''}" onclick="pick('${k}',true)">
+      <div class="cl"><div class="ci ${v.cls}">${v.symbol[0]}</div><div><div class="cn">${v.symbol}</div><div class="cs mono">${user?qty(b)+' '+v.symbol:v.name}</div></div></div>
+      <div class="cr mono"><div class="cp">${fmt(v.price)}</div><span class="pc ${up?'u':'d'}">${up?'+':''}${v.change}%</span></div></button>`;
+  }).join('');
+  $('heroNet').textContent=fmt(net);$('heroSub').textContent=user?`Cash ${fmt(money)} dan crypto ${fmt(cryptoVal)}`:'Masuk untuk melihat saldo';
+
+  $('tChips').innerHTML=Object.entries(mk).map(([k,v])=>`<button class="chip ${k===coin?'on':''}" onclick="pick('${k}')">${v.symbol}</button>`).join('');
+  $('rChips').innerHTML=[12,36,72].map(n=>`<button class="chip ${n===range?'on':''}" onclick="setRange(${n})">${n}</button>`).join('');
+
+  const a=mk[coin],up=a.change>=0;
+  $('pName').textContent=`${a.symbol} / USD`;
+  $('pFull').textContent=a.name;
+  const pe=$('pPrice');pe.textContent=fmt(a.price);pe.style.color=up?'var(--up)':'var(--dn)';
+  const ce=$('pChg');ce.textContent=`${up?'+':''}${a.change}%`;ce.className=`pc mono ${up?'u':'d'}`;
+  $('mHi').textContent=fmt(a.high);$('mLo').textContent=fmt(a.low);
+
+  const step=Math.max(2,Math.round(a.price*.002)),bids=[],asks=[];
+  for(let i=1;i<=5;i++){
+    bids.push(`<div><span>${fmt(Math.max(1,a.price-i*step))}</span><span>${(Math.sin(a.price+i*9)*12+15).toFixed(2)}</span></div>`);
+    asks.push(`<div><span>${fmt(a.price+i*step)}</span><span>${(Math.cos(a.price+i*7)*12+15).toFixed(2)}</span></div>`);
+  }
+  $('obB').innerHTML=bids.join('');$('obA').innerHTML=asks.join('');
+
+  $('tBadge').textContent=a.symbol;$('iPrice').value=fmt(a.price);$('iSuf').textContent=a.symbol;$('sUnit').textContent=fmt(a.price);
+  const bal=user?.crypto?.[coin]||0;
+  $('lAvail').textContent=tside==='buy'?`Saldo: ${fmt(money)}`:`Milikmu: ${qty(bal)} ${a.symbol}`;
+  $('goTxt').textContent=`${tside==='buy'?'Beli':'Jual'} ${a.symbol}`;
+  $('sLbl').textContent=tside==='buy'?'Total bayar':'Uang diterima';
+
+  $('pfNet').textContent=fmt(net);$('pfCash').textContent=fmt(money);$('pfCrypto').textContent=fmt(cryptoVal);$('pfCnt').textContent=`${active} aset aktif`;
+  $('pfBody').innerHTML=Object.entries(mk).map(([k,v])=>{
+    const b=user?.crypto?.[k]||0;
+    return `<tr><td><b>${v.symbol}</b></td><td>${qty(b)}</td><td style="color:${vals[k]>0?'var(--up)':'var(--mut)'};font-weight:700">${fmt(vals[k])}</td>
+      <td style="text-align:right"><button class="chip" onclick="quickSell('${k}')"><i data-lucide="arrow-up-right"></i>Jual</button></td></tr>`;
+  }).join('');
+  const parts=Object.keys(mk).filter(k=>vals[k]>0);
+  $('pfBar').innerHTML=cryptoVal>0?parts.map(k=>`<i style="width:${vals[k]/cryptoVal*100}%;background:${COLORS[k]}"></i>`).join(''):'';
+  $('pfLeg').innerHTML=cryptoVal>0?parts.map(k=>`<span><b style="color:${COLORS[k]}">${mk[k].symbol}</b> ${(vals[k]/cryptoVal*100).toFixed(1)}%</span>`).join(''):'Belum ada aset crypto';
+
+  renderHist();sumUp();icons();draw();
+}
+
+function renderHist(){
+  const el=$('hList');
+  if(!user){el.innerHTML='<div class="empty"><i data-lucide="lock"></i>Masuk dulu untuk melihat riwayat</div>';return}
+  if(!hist.length){el.innerHTML='<div class="empty"><i data-lucide="receipt"></i>Belum ada transaksi</div>';return}
+  el.innerHTML=hist.map(h=>{
+    const buy=h.side==='BUY';
+    return `<div class="hr"><div class="hl"><div class="hi ${buy?'u':'d'}"><i data-lucide="${buy?'arrow-down-left':'arrow-up-right'}" style="color:var(--${buy?'up':'dn'})"></i></div>
+      <div><div class="hn">${buy?'Beli':'Jual'} ${qty(h.amt)} ${h.sym}</div><div class="hs mono">@ ${fmt(h.price)} &middot; ${new Date(h.at).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div></div>
+      <b class="mono" style="color:var(--${buy?'dn':'up'})">${buy?'-':'+'}${fmt(h.total)}</b></div>`;
+  }).join('');
+}
+function loadHist(){
+  hist=[];
+  if(!user)return;
+  try{hist=JSON.parse(localStorage.getItem('guts_hist_'+user.number)||'[]')}catch(_){}
+}
+function saveHist(){try{localStorage.setItem('guts_hist_'+user.number,JSON.stringify(hist.slice(0,100)))}catch(_){}}
+function clearHist(){
+  if(!user||!hist.length)return;
+  hist=[];saveHist();renderHist();icons();toast('Riwayat dihapus','ok');
+}
+
+function go(p){
+  if(p==='admin'&&!user?.isAdmin)return toast('Khusus Owner Bot!','err');
+  page=p;
+  document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  history.replaceState(null,'','#'+p);
+  window.scrollTo(0,0);
+  if(p==='trade')requestAnimationFrame(draw);
+}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+
+function pick(k,open){coin=k;$('iAmt').value='';render();if(open)go('trade')}
+function quickSell(k){coin=k;tside='sell';syncSide();render();fill(1);go('trade')}
+function setType(t){
+  ctype=t;$('bCandle').classList.toggle('on',t==='candle');$('bArea').classList.toggle('on',t==='area');draw();
+}
+function setRange(n){range=n;render()}
+function syncSide(){
+  $('sBuy').classList.toggle('on',tside==='buy');$('sSell').classList.toggle('on',tside==='sell');$('goBtn').className='go '+tside;
+}
+function side(s){tside=s;$('iAmt').value='';syncSide();render()}
+function fill(p){
+  if(!user){toast('Masuk dengan Secret Key dulu','err');go('account');return}
+  const price=mk[coin].price;
+  if(tside==='buy'){
+    const m=user.money*p/price;
+    $('iAmt').value=m>=1?Math.floor(m*100)/100:Number(m.toFixed(4));
+  }else{
+    const b=user.crypto[coin]||0;
+    $('iAmt').value=p===1?b:Number((b*p).toFixed(4));
+  }
+  sumUp();
+}
+function sumUp(){
+  const a=parseFloat($('iAmt').value)||0,p=mk[coin]?.price||0;
+  $('sTot').textContent=fmt(tside==='buy'?Math.ceil(a*p):Math.floor(a*p));
+}
+
+// FUNGSI KENDALI BANDAR (OWNER)
+function applyPreset(title,mults,isReset=false){
+  $('mGuts').value=mults.guts;$('lblMguts').textContent=mults.guts+'x';$('mBtc').value=mults.btc;$('lblMbtc').textContent=mults.btc+'x';$('mEth').value=mults.eth;$('lblMeth').textContent=mults.eth+'x';$('mSol').value=mults.sol;$('lblMsol').textContent=mults.sol+'x';$('admTitle').value=title;
+  saveMarketControl(!isReset);
+}
+
+async function saveMarketControl(withBroadcast){
+  if(!user?.isAdmin)return toast('Akses ditolak!','err');
+  const mult={
+    guts:Math.max(0.01,parseFloat($('mGuts').value)||1),
+    btc:Math.max(0.01,parseFloat($('mBtc').value)||1),
+    eth:Math.max(0.01,parseFloat($('mEth').value)||1),
+    sol:Math.max(0.01,parseFloat($('mSol').value)||1)
+  };
+  const durMs=parseInt($('admDur').value)||0;
+  const expiresAt=durMs>0?(Date.now()+durMs):0;
+  const eventName=$('admTitle').value.trim()||(mult.btc<1?'MARKET CRASH DARURAT':mult.btc>1?'BULL RUN PUMP':'NORMAL');
+  const customMsg=$('admMsg').value.trim();
+
+  const payload={
+    mult,
+    eventName:mult.guts===1&&mult.btc===1&&mult.eth===1&&mult.sol===1?'':eventName,
+    customMsg,
+    expiresAt,
+    updatedAt:Date.now(),
+    ...(withBroadcast?{broadcastId:Date.now()}:{})
+  };
+
+  try{
+    const r=await fetch(`${DB}/wa_users/_market_control.json`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok)throw new Error('Gagal menyimpan ke Firebase');
+    await fetchMarketControl();
+    render();
+    toast(withBroadcast?'Manipulasi pasar aktif & diumumkan ke Grup WA!':'Manipulasi pasar berhasil diterapkan!','ok');
+  }catch(e){toast(e.message,'err')}
+}
+
+async function triggerTaxRaid(){
+  if(!user?.isAdmin)return toast('Akses ditolak!','err');
+  const rate=Math.min(40,Math.max(1,parseInt($('admTaxRate').value)||10));
+  try{
+    const r=await fetch(`${DB}/wa_users/_market_control.json`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({taxRaidId:Date.now(),taxRaidRate:rate})
+    });
+    if(!r.ok)throw new Error('Gagal mengirim perintah pajak');
+    toast(`Sidak Pajak ${rate}% dikirim ke Bot WA!`,'ok');
+  }catch(e){toast(e.message,'err')}
+}
+
+async function fetchUser(key){
+  await fetchMarketControl();
+  const kr=await fetch(`${DB}/secret_keys/${encodeURIComponent(key)}.json`);
+  if(!kr.ok)throw new Error('Server tidak merespons');
+  const kd=await kr.json();
+  if(!kd||!kd.number)throw new Error('Secret Key tidak ditemukan. Ketik .secretkey di DM bot WhatsApp.');
+  const ur=await fetch(`${DB}/wa_users/${kd.number}.json`);
+  const ud=await ur.json();
+  if(!ud)throw new Error('Data pengguna belum tersinkron');
+  const c=ud.crypto||{};
+  const isAdmin=Boolean(ud.isAdmin)||OWNER_NUMS.includes(String(kd.number));
+  return{
+    number:kd.number,
+    jid:ud.jid||`${kd.number}@s.whatsapp.net`,
+    username:ud.username||kd.number,
+    ppUrl:ud.ppUrl||'https://telegra.ph/file/24fa902ead26340f3df2c.png',
+    isAdmin,
+    money:Number(ud.money)||0,
+    crypto:{guts:Number(c.guts)||0,btc:Number(c.btc)||0,eth:Number(c.eth)||0,sol:Number(c.sol)||0},
+    secretKey:key
+  };
+}
+function applyUser(){
+  const u=user;
+  $('avTop').src=$('avBig').src=u?u.ppUrl:'https://telegra.ph/file/24fa902ead26340f3df2c.png';
+  $('aName').textContent=u?u.username:'Belum masuk';
+  $('aPhone').textContent=u?'+'+u.number+(u.isAdmin?' 👑':''):'Mode tamu';
+  const s=$('aStat');s.textContent=u?(u.isAdmin?'Owner Mode':'Online'):'Tamu';s.style.color=u?'var(--up)':'var(--gold)';
+  $('aSync').textContent=u?new Date().toLocaleTimeString('id-ID'):'-';
+  $('outBtn').style.display=u?'flex':'none';
+
+  // Tampilkan Tab Bandar Khusus Owner
+  const admBtn=$('navAdminBtn'),nav=$('bottomNav');
+  if(u?.isAdmin){
+    admBtn.style.display='grid';
+    nav.classList.add('admin-mode');
+  }else{
+    admBtn.style.display='none';
+    nav.classList.remove('admin-mode');
+  }
+
+  loadHist();render();
+}
+async function login(){
+  const key=$('iKey').value.trim().toUpperCase();
+  if(!key.startsWith('GUTS-'))return toast('Format tidak valid. Contoh: GUTS-XXXX-XXXX','err');
+  const b=$('loginBtn');b.disabled=true;
+  try{
+    user=await fetchUser(key);
+    try{localStorage.setItem('guts_crypto_secretkey',key)}catch(_){}
+    applyUser();toast(`Terhubung sebagai ${user.username}`,'ok');go(user.isAdmin?'admin':'portfolio');
+  }catch(e){toast(e.message,'err')}
+  b.disabled=false;
+}
+async function refresh(manual){
+  await fetchMarketControl();
+  let key=user?.secretKey;
+  if(!key){try{key=localStorage.getItem('guts_crypto_secretkey')}catch(_){}}
+  if(!key){render();return}
+  try{
+    user=await fetchUser(key);applyUser();
+    if(manual)toast('Saldo & pasar tersinkron','ok');
+  }catch(e){if(manual)toast(e.message,'err')}
+}
+function logout(){
+  try{localStorage.removeItem('guts_crypto_secretkey')}catch(_){}
+  user=null;hist=[];$('iKey').value='';applyUser();go('market');toast('Kamu sudah keluar','ok');
+}
+
+async function trade(){
+  if(!user){toast('Masuk dengan Secret Key dulu','err');go('account');return}
+  const amt=parseFloat($('iAmt').value);
+  if(!amt||amt<=0)return toast('Masukkan jumlah koin yang valid','err');
+  await fetchMarketControl();
+  markets();
+  const m=mk[coin],btn=$('goBtn'),snap={money:user.money,crypto:{...user.crypto}};
+  btn.disabled=true;
+  try{
+    let total;
+    if(tside==='buy'){
+      total=Math.ceil(amt*m.price);
+      if(user.money<total)throw new Error(`Saldo kurang. Butuh ${fmt(total)}`);
+      user.money-=total;
+      user.crypto[coin]=Number(((user.crypto[coin]||0)+amt).toFixed(4));
+    }else{
+      const bal=user.crypto[coin]||0;
+      if(bal<amt)throw new Error(`${m.symbol} kurang. Milikmu ${qty(bal)}`);
+      total=Math.floor(amt*m.price);
+      user.crypto[coin]=Number((bal-amt).toFixed(4));
+      user.money+=total;
+    }
+    const nowTs=Date.now();
+    const payload={
+      money:user.money,
+      crypto:user.crypto,
+      jid:user.jid,
+      updatedAt:nowTs,
+      webUpdatedAt:nowTs
+    };
+    const r1=await fetch(`${DB}/wa_users/${user.number}.json`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r1.ok)throw new Error('Gagal menyimpan ke server Firebase');
+
+    hist.unshift({side:tside==='buy'?'BUY':'SELL',sym:m.symbol,amt,price:m.price,total,at:nowTs});
+    saveHist();
+    $('iAmt').value='';render();
+    toast(`${tside==='buy'?'Berhasil membeli':'Berhasil menjual'} ${qty(amt)} ${m.symbol}`,'ok');
+  }catch(e){
+    user.money=snap.money;user.crypto=snap.crypto;render();toast(e.message,'err');
+  }
+  btn.disabled=false;
+}
+
+let tt;
+function toast(msg,type){
+  const t=$('toast');
+  const ic=type==='ok'?'check-circle-2':type==='err'?'alert-circle':'info';
+  t.className='toast show '+(type||'');
+  t.innerHTML=`<i data-lucide="${ic}"></i><span></span>`;
+  t.lastChild.textContent=msg;icons();
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3400);
+}
+
+let lastSlot=Math.floor(Date.now()/SLOT);
+setInterval(()=>{
+  const rem=SLOT-(Date.now()%SLOT);
+  $('cd').textContent=String(Math.floor(rem/60000)).padStart(2,'0')+':'+String(Math.floor(rem%60000/1000)).padStart(2,'0');
+  const s=Math.floor(Date.now()/SLOT);
+  if(s!==lastSlot){lastSlot=s;render()}
+},1000);
+setInterval(()=>{if(!document.hidden)refresh(false)},15000);
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  await fetchMarketControl();
+  const h=location.hash.slice(1);
+  if(['market','trade','portfolio','history','account'].includes(h))go(h);
+  render();
+  let k=null;
+  try{k=localStorage.getItem('guts_crypto_secretkey')}catch(_){}
+  if(k){$('iKey').value=k;refresh(false)}
+});
+</script>
+</body>
+</html>
