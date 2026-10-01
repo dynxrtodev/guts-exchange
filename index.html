@@ -246,8 +246,20 @@
 
       <div class="lb"><span>Judul Headline Event</span></div>
       <div class="inp"><input type="text" id="admTitle" placeholder="Contoh: DATA NFP RILIS! GOLD LONCAT TAJAM!"></div>
+      
       <div class="lb"><span>Pesan Broadcast ke Grup WA</span></div>
       <div class="inp"><input type="text" id="admMsg" placeholder="Contoh: Yang pasang 100x siap-siap Margin Call!"></div>
+      
+      <!-- TAMBAHKAN BLOK INI LEK -->
+      <div class="lb"><span>Mode Eksekusi (Tipe Tarikan)</span></div>
+      <div class="inp">
+        <select id="admMode">
+          <option value="gradual" selected>Perlahan (Naik/Turun Halus 3 Menit)</option>
+          <option value="instant">Instan (Langsung Lompat & Bikin Jejak)</option>
+        </select>
+      </div>
+      <!-- SAMPAI SINI -->
+
       <div class="lb"><span>Durasi Aktif</span></div>
       <div class="inp">
         <select id="admDur">
@@ -262,7 +274,7 @@
         <button class="go buy" onclick="saveMarketControl(false)"><i data-lucide="save"></i>Terapkan Senyap</button>
         <button class="go sell" onclick="saveMarketControl(true)"><i data-lucide="megaphone"></i>Terapkan + Broadcast WA</button>
       </div>
-    </div>
+    </>
 
     <div class="box">
       <div class="ttl"><span><i data-lucide="landmark"></i>Sidak Pajak Kekayaan Sultan (Wealth Tax Raid)</span></div>

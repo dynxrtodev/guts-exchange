@@ -22,7 +22,7 @@ const qty=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:4});
 
 let coin='guts',tside='buy',ctype='candle',range=36,user=null,mk={},candles=[],hover=null,page='market',hist=[];
 let fxPair='xau',fxSide='LONG',fxLev=25,fxMk={},fxCandles=[],fxHover=null;
-let mCtrl={mult:{guts:1,btc:1,eth:1,sol:1},fxShift:{xau:0,eur:0,gbp:0,idr:0},eventName:'',expiresAt:0};
+let mCtrl={mult:{guts:1,btc:1,eth:1,sol:1},fxShift:{xau:0,eur:0,gbp:0,idr:0},eventName:'',expiresAt:0,startedAt:0,mode:'instant'};
 
 function seedRand(slot,seed){const x=Math.sin(slot*999+seed*77)*10000;return x-Math.floor(x)}
 function naturalEventMult(slot,seed){
@@ -34,17 +34,37 @@ function naturalEventMult(slot,seed){
 function isCtrlActive(){
   return mCtrl&&(mCtrl.expiresAt===0||Date.now()<mCtrl.expiresAt);
 }
-function priceAt(k,slot,applyAdmin=false){
-  const m=META[k],p=seedRand(slot,m.seed);
+
+// FUNGSI BARU: Hitung pengali berdasarkan waktu dan transisi (Instan/Perlahan)
+function getAdminFactor(k, timeMs, type='crypto'){
+  if(!isCtrlActive() || timeMs < mCtrl.startedAt) return type==='crypto'?1:0;
+  let target = type==='crypto' ? (Number(mCtrl.mult?.[k])||1) : (Number(mCtrl.fxShift?.[k])||0);
+  let base = type==='crypto'? 1 : 0;
+  
+  if(mCtrl.mode === 'gradual'){
+    const elapsed = timeMs - mCtrl.startedAt;
+    const trans = 180000; // 3 Menit transisi mulus
+    if(elapsed < trans){
+      const ease = 1 - Math.pow(1 - (elapsed/trans), 3); // Cubic ease-out
+      return base + (target - base) * ease;
+    }
+  }
+  return target;
+}
+
+function priceAt(k, slot, isLive=false){
+  const m=META[k], p=seedRand(slot, m.seed);
   const raw=m.base+p*m.range;
   const nat=naturalEventMult(slot,m.seed);
-  const adm=(applyAdmin&&isCtrlActive())?(Number(mCtrl.mult?.[k])||1):1;
+  const timeMs = isLive ? Date.now() : ((slot + 1) * SLOT);
+  const adm = getAdminFactor(k, timeMs, 'crypto');
   const tot=nat*adm;
   const price=Math.max(1,Math.floor(raw*tot));
   let chg=(p-.48)*m.vol;
   if(tot!==1)chg+=(tot-1)*100;
   return{price,change:parseFloat(chg.toFixed(2))};
 }
+
 function markets(){
   const cur=Math.floor(Date.now()/SLOT);
   for(const k in META){
@@ -53,10 +73,13 @@ function markets(){
     mk[k]={...META[k],price:c.price,change:c.change,high:hi,low:lo};
   }
 }
+
 function buildCandles(){
   const cur=Math.floor(Date.now()/SLOT),m=META[coin],list=[];
   for(let i=range-1;i>=0;i--){
-    const s=cur-i,o=priceAt(coin,s-1,i===0).price,c=priceAt(coin,s,i===0).price;
+    const s=cur-i;
+    const o=priceAt(coin,s-1,false).price; // Pastikan Open menyambung persis dengan Close sebelumnya
+    const c=priceAt(coin,s,i===0).price;
     const sp=Math.max(15,Math.floor(m.range*.06));
     const hi=Math.max(o,c)+Math.floor(seedRand(s+7,m.seed*3)*sp);
     const lo=Math.max(1,Math.min(o,c)-Math.floor(seedRand(s+13,m.seed*5)*sp));
@@ -75,9 +98,10 @@ function fxWaveAtSec(sec,seed){
   return(trend+swing+spike+tick+jitter+1)/2;
 }
 
-function fxPriceAtSec(k,sec,applyAdmin=false){
+function fxPriceAtSec(k, sec){
   const m=FX_META[k];
-  const shift=(applyAdmin&&isCtrlActive())?(Number(mCtrl.fxShift?.[k])||0):0;
+  const timeMs = sec * 1000;
+  const shift = getAdminFactor(k, timeMs, 'forex');
   const w=fxWaveAtSec(sec,m.seed);
   let raw=(m.base+w*m.range)*(1+(shift/100));
   raw=Math.max(m.base*0.2,raw);
@@ -88,12 +112,12 @@ function computeForexMarkets(){
   const nowSec=Math.floor(Date.now()/1000);
   for(const k in FX_META){
     const m=FX_META[k];
-    const curP=fxPriceAtSec(k,nowSec,true);
-    const refP=fxPriceAtSec(k,nowSec-300,false);
+    const curP=fxPriceAtSec(k,nowSec);
+    const refP=fxPriceAtSec(k,nowSec-300);
     const chg=(((curP-refP)/refP)*100).toFixed(2);
     let hi=curP,lo=curP;
     for(let i=1;i<=60;i++){
-      const p=fxPriceAtSec(k,nowSec-i*15,false);
+      const p=fxPriceAtSec(k,nowSec-i*15);
       if(p>hi)hi=p;if(p<lo)lo=p;
     }
     fxMk[k]={...m,price:curP,change:parseFloat(chg),high:hi,low:lo};
@@ -110,14 +134,13 @@ function buildFxCandles(){
     const b=curBucket-i;
     const startSec=b*CANDLE_SEC;
     const endSec=(i===0)?nowSec:((b+1)*CANDLE_SEC);
-    const isLive=(i===0);
 
-    const open=fxPriceAtSec(fxPair,startSec,isLive);
-    const close=fxPriceAtSec(fxPair,endSec,isLive);
+    const open=fxPriceAtSec(fxPair,startSec);
+    const close=fxPriceAtSec(fxPair,endSec);
     let hi=Math.max(open,close),lo=Math.min(open,close);
 
     for(let s=startSec+1;s<=endSec;s+=2){
-      const p=fxPriceAtSec(fxPair,s,isLive);
+      const p=fxPriceAtSec(fxPair,s);
       if(p>hi)hi=p;if(p<lo)lo=p;
     }
     list.push({
@@ -147,7 +170,9 @@ async function fetchMarketControl(){
         mult:d.mult||{guts:1,btc:1,eth:1,sol:1},
         fxShift:d.fxShift||{xau:0,eur:0,gbp:0,idr:0},
         eventName:d.eventName||'',
-        expiresAt:Number(d.expiresAt)||0
+        expiresAt:Number(d.expiresAt)||0,
+        startedAt:Number(d.startedAt)||0,
+        mode:d.mode||'instant'
       };
     }
   }catch(_){}
@@ -537,6 +562,7 @@ async function saveMarketControl(withBroadcast){
   const expiresAt=durMs>0?(Date.now()+durMs):0;
   const eventName=$('admTitle').value.trim();
   const customMsg=$('admMsg').value.trim();
+  const mode=$('admMode')?$('admMode').value:'gradual'; // Baca opsi Instan/Perlahan
 
   const payload={
     mult,
@@ -544,6 +570,8 @@ async function saveMarketControl(withBroadcast){
     eventName,
     customMsg,
     expiresAt,
+    startedAt: Date.now(), // Simpan waktu pas diklik buat bikin jejak/transisi
+    mode,
     updatedAt:Date.now(),
     ...(withBroadcast?{broadcastId:Date.now()}:{})
   };
@@ -714,8 +742,7 @@ function admVis(){
   nav.classList.toggle('admin-mode',show);
   const box=$('admSwitchBox');
   box.style.display=on?'block':'none';
-  $('admSwitch').classList.toggle('on',!hidden());
-  $('admSwitch').setAttribute('aria-checked',String(!hidden()));
+  $('admSwitch').classList.toggle('on',!hidden());$('admSwitch').setAttribute('aria-checked',String(!hidden()));
   if(!show&&page==='admin')go('market');
 }
 const _au=applyUser;
@@ -724,8 +751,7 @@ applyUser=function(){_au.apply(this,arguments);admVis()};
 const box=document.createElement('div');
 box.className='box';box.id='admSwitchBox';box.style.display='none';
 box.innerHTML='<div class="ttl"><span><i data-lucide="crown"></i>Tombol Bandar</span></div><div class="swrow"><div><b>Tampilkan di navigasi</b><small>Tekan tahan tombol Whale 2 detik untuk menyembunyikannya</small></div><button class="sw on" id="admSwitch" role="switch" aria-label="Tampilkan tombol Bandar"><i></i></button></div>';
-$('p-account').appendChild(box);
-$('admSwitch').onclick=()=>{setHidden(!hidden());admVis()};
+$('p-account').appendChild(box);$('admSwitch').onclick=()=>{setHidden(!hidden());admVis()};
 
 const sheet=document.createElement('div');
 sheet.className='sheet';
