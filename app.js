@@ -23,6 +23,7 @@ const qty=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:4});
 let coin='guts',tside='buy',ctype='candle',range=36,user=null,mk={},candles=[],hover=null,page='market',hist=[];
 let fxPair='xau',fxSide='LONG',fxLev=25,fxMk={},fxCandles=[],fxHover=null;
 let mCtrl={mult:{guts:1,btc:1,eth:1,sol:1},fxShift:{xau:0,eur:0,gbp:0,idr:0},eventName:'',expiresAt:0,startedAt:0,mode:'instant'};
+let lastFxLogTime=0, fxLogsData=[], tickCount=0;
 
 function seedRand(slot,seed){const x=Math.sin(slot*999+seed*77)*10000;return x-Math.floor(x)}
 function naturalEventMult(slot,seed){
@@ -35,7 +36,6 @@ function isCtrlActive(){
   return mCtrl&&(mCtrl.expiresAt===0||Date.now()<mCtrl.expiresAt);
 }
 
-// FUNGSI BARU: Hitung pengali berdasarkan waktu dan transisi (Instan/Perlahan)
 function getAdminFactor(k, timeMs, type='crypto'){
   if(!isCtrlActive() || timeMs < mCtrl.startedAt) return type==='crypto'?1:0;
   let target = type==='crypto' ? (Number(mCtrl.mult?.[k])||1) : (Number(mCtrl.fxShift?.[k])||0);
@@ -43,9 +43,9 @@ function getAdminFactor(k, timeMs, type='crypto'){
   
   if(mCtrl.mode === 'gradual'){
     const elapsed = timeMs - mCtrl.startedAt;
-    const trans = 180000; // 3 Menit transisi mulus
+    const trans = 180000; 
     if(elapsed < trans){
-      const ease = 1 - Math.pow(1 - (elapsed/trans), 3); // Cubic ease-out
+      const ease = 1 - Math.pow(1 - (elapsed/trans), 3); 
       return base + (target - base) * ease;
     }
   }
@@ -78,7 +78,7 @@ function buildCandles(){
   const cur=Math.floor(Date.now()/SLOT),m=META[coin],list=[];
   for(let i=range-1;i>=0;i--){
     const s=cur-i;
-    const o=priceAt(coin,s-1,false).price; // Pastikan Open menyambung persis dengan Close sebelumnya
+    const o=priceAt(coin,s-1,false).price; 
     const c=priceAt(coin,s,i===0).price;
     const sp=Math.max(15,Math.floor(m.range*.06));
     const hi=Math.max(o,c)+Math.floor(seedRand(s+7,m.seed*3)*sp);
@@ -176,6 +176,49 @@ async function fetchMarketControl(){
       };
     }
   }catch(_){}
+}
+
+// LOG RADAR WHALE
+// LOG RADAR WHALE
+async function fetchFxLogs(){
+  if(!user?.isAdmin) return;
+  try{
+    const r = await fetch(`${DB}/fx_logs.json`);
+    const d = await r.json();
+    if(d){
+      // FIX: Filter data bodong/kosong biar gak bikin tampilan undefined
+      fxLogsData = Object.values(d)
+        .filter(log => log && log.t && log.u && log.p) 
+        .sort((a,b) => b.t - a.t)
+        .slice(0, 30);
+      
+      renderFxLogs();
+    }
+  }catch(e){}
+}
+
+function renderFxLogs(){
+  const el = $('admFxLogs'); if(!el) return;
+  if(!fxLogsData.length){ el.innerHTML='<div class="empty">Belum ada pergerakan player...</div>'; return; }
+  let html='', hasNew=false;
+  fxLogsData.forEach(log=>{
+    if(log.t > lastFxLogTime && lastFxLogTime !== 0) hasNew = true;
+    const col = log.s==='LONG'?'var(--up)':'var(--dn)';
+    const tm = new Date(log.t).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    html += `<div style="background:var(--card); padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div><b style="color:var(--gold);font-size:0.9rem">${log.u}</b> <small style="color:var(--mut);margin-left:6px">${tm}</small><br>
+      <span style="font-size:0.8rem">${log.p}</span> <b style="color:${col};font-size:0.85rem;margin-left:4px">${log.s} ${log.l}x</b></div>
+      <div style="text-align:right;font-size:0.75rem;color:var(--mut)">Margin<br><b class="mono" style="color:var(--tx);font-size:0.95rem">${fmt(log.m)}</b></div>
+    </div>`;
+  });
+  el.innerHTML = html;
+  
+  if(hasNew && page !== 'admin'){
+    const dot = $('whaleDot');
+    if(dot) dot.style.display = 'block';
+    if(navigator.vibrate) navigator.vibrate([10, 30, 10]); // Getar halus kalo ada mangsa
+  }
+  if(fxLogsData.length > 0) lastFxLogTime = fxLogsData[0].t;
 }
 
 const PAD={t:24,b:24,r:66,l:10};
@@ -436,6 +479,16 @@ async function openForexPosition(){
   user.money-=margin;
   user.forexPositions.push(newPos);
   await syncToFirebase();
+  
+  // KIRIM LOG KE RADAR WHALE
+  try {
+    await fetch(`${DB}/fx_logs.json`, {
+      method: 'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ u: user.username, p: f.pair, s: fxSide, m: margin, l: fxLev, t: Date.now() })
+    });
+  } catch(e){}
+
   $('fxMarginInp').value='';$('fxTpInp').value='';$('fxSlInp').value='';
   render();
   toast(`Posisi ${fxSide} ${f.pair} (${fxLev}x) dibuka!`,'ok');
@@ -512,6 +565,13 @@ function go(p){
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
   history.replaceState(null,'','#'+p);
   window.scrollTo(0,0);
+  
+  // Hapus notif dot merah pas admin masuk ke layar Whale
+  if(p==='admin'){
+    const dot = $('whaleDot');
+    if(dot) dot.style.display='none';
+  }
+  
   if(p==='trade'||p==='forex')requestAnimationFrame(draw);
 }
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
@@ -562,7 +622,7 @@ async function saveMarketControl(withBroadcast){
   const expiresAt=durMs>0?(Date.now()+durMs):0;
   const eventName=$('admTitle').value.trim();
   const customMsg=$('admMsg').value.trim();
-  const mode=$('admMode')?$('admMode').value:'gradual'; // Baca opsi Instan/Perlahan
+  const mode=$('admMode')?$('admMode').value:'gradual'; 
 
   const payload={
     mult,
@@ -570,7 +630,7 @@ async function saveMarketControl(withBroadcast){
     eventName,
     customMsg,
     expiresAt,
-    startedAt: Date.now(), // Simpan waktu pas diklik buat bikin jejak/transisi
+    startedAt: Date.now(), 
     mode,
     updatedAt:Date.now(),
     ...(withBroadcast?{broadcastId:Date.now()}:{})
@@ -697,12 +757,16 @@ function toast(msg,type){
   clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3400);
 }
 
-let lastSlot=Math.floor(Date.now()/SLOT);
+// LOOP UTAMA 1 DETIK (Live Tick & Polling)
 setInterval(()=>{
+  tickCount++;
   const rem=SLOT-(Date.now()%SLOT);
   const fxRem=15-(Math.floor(Date.now()/1000)%15);
   $('cd').textContent=String(Math.floor(rem/60000)).padStart(2,'0')+':'+String(Math.floor(rem%60000/1000)).padStart(2,'0');
   $('fxCd').textContent=fxRem+'s';$('fxTimerBadge').textContent=`Live Tick 1s • Candle Baru: ${fxRem}s`;
+
+  // Fetch Radar Tiap 3 Detik buat Admin
+  if(tickCount % 3 === 0 && user?.isAdmin) fetchFxLogs();
 
   const s=Math.floor(Date.now()/SLOT);
   if(s!==lastSlot){lastSlot=s;render();return}

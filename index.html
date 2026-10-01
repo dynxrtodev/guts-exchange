@@ -215,6 +215,12 @@
       <em id="admEventExp" style="color:var(--gold)">Harga bergerak organik</em>
     </div>
 
+        <div class="box">
+      <div class="ttl"><span><i data-lucide="radar"></i>Radar Posisi Player (Live)</span></div>
+      <div id="admFxLogs" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+        <div class="empty">Memantau pergerakan player...</div>
+      </div>
+    </div>
     <div class="box">
       <div class="ttl"><span><i data-lucide="skull"></i>Preset Likuidasi & Skenario Instan (1-Klik)</span></div>
       <div class="grid2" style="margin-bottom:8px">
@@ -291,7 +297,10 @@
   <button data-p="forex"><i data-lucide="flame"></i>Forex</button>
   <button data-p="portfolio"><i data-lucide="pie-chart"></i>Portofolio</button>
   <button data-p="account"><i data-lucide="user-round"></i>Akun</button>
-  <button data-p="admin" id="navAdminBtn" style="display:none;color:var(--gold)"><i data-lucide="crown"></i>Whale</button>
+<button data-p="admin" id="navAdminBtn" style="display:none;color:var(--gold);position:relative;">
+  <i data-lucide="crown"></i>Whale
+  <span id="whaleDot" style="display:none;position:absolute;top:6px;right:22px;width:8px;height:8px;background:var(--dn);border-radius:50%;box-shadow:0 0 8px var(--dn);"></span>
+</button>
 </nav>
 <div class="toast" id="toast"></div>
 
