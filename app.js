@@ -22,8 +22,12 @@ const qty=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:4});
 
 let coin='guts',tside='buy',ctype='candle',range=36,user=null,mk={},candles=[],hover=null,page='market',hist=[];
 let fxPair='xau',fxSide='LONG',fxLev=25,fxMk={},fxCandles=[],fxHover=null;
-let mCtrl={mult:{guts:1,btc:1,eth:1,sol:1},fxShift:{xau:0,eur:0,gbp:0,idr:0},eventName:'',expiresAt:0,startedAt:0,mode:'instant'};
+let mCtrl={mult:{guts:1,btc:1,eth:1,sol:1},fxShift:{xau:0,eur:0,gbp:0,idr:0},eventName:'',expiresAt:0,startedAt:0,mode:'instant',segs:[],segsKey:''};
 let lastFxLogTime=0, fxLogsData=[], tickCount=0;
+let lastSlot=Math.floor(Date.now()/SLOT);
+const tfHM=new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit'});
+const tfMS=new Intl.DateTimeFormat('id-ID',{minute:'2-digit',second:'2-digit'});
+const fxCache=new Map();
 
 function seedRand(slot,seed){const x=Math.sin(slot*999+seed*77)*10000;return x-Math.floor(x)}
 function naturalEventMult(slot,seed){
@@ -36,20 +40,41 @@ function isCtrlActive(){
   return mCtrl&&(mCtrl.expiresAt===0||Date.now()<mCtrl.expiresAt);
 }
 
+// ===== TIMELINE MARKET CONTROL =====
+// Setiap penerapan dari Whale = 1 segmen {start,end,mult,fxShift,mode}.
+// Level tiap segmen DIMULAI dari level segmen sebelumnya pada detik start (tidak reset ke normal),
+// lalu menuju target. Setelah end, level kembali ke normal (halus 3 menit jika mode 'gradual').
+// Riwayat chart tetap utuh karena harga masa lalu dihitung dari segmen yang berlaku saat itu.
+const TRANS=180000;
+const easeOut=x=>{x=Math.max(0,Math.min(1,x));return 1-Math.pow(1-x,3)};
+const baseOf=type=>type==='crypto'?1:0;
+function segTarget(seg,k,type){
+  return type==='crypto'?(Number(seg.mult?.[k])||1):(Number(seg.fxShift?.[k])||0);
+}
+function segLevel(seg,k,type,t){
+  const base=baseOf(type),from=seg._from[type][k],target=segTarget(seg,k,type);
+  const enter=tt=>seg.mode==='gradual'?from+(target-from)*easeOut((tt-seg.start)/TRANS):target;
+  if(seg.end===0||t<seg.end)return enter(t);
+  const atEnd=enter(seg.end);
+  return seg.mode==='gradual'?atEnd+(base-atEnd)*easeOut((t-seg.end)/TRANS):base;
+}
+function rebuildSegs(){
+  const segs=mCtrl.segs;
+  segs.forEach((seg,i)=>{
+    seg._from={crypto:{},forex:{}};
+    for(const k in META)seg._from.crypto[k]=i?segLevel(segs[i-1],k,'crypto',seg.start):1;
+    for(const k in FX_META)seg._from.forex[k]=i?segLevel(segs[i-1],k,'forex',seg.start):0;
+  });
+  mCtrl.segsKey=segs.map(x=>x.start+':'+x.end+':'+x.mode).join(',');
+}
+
 function getAdminFactor(k, timeMs, type='crypto'){
-  if(!isCtrlActive() || timeMs < mCtrl.startedAt) return type==='crypto'?1:0;
-  let target = type==='crypto' ? (Number(mCtrl.mult?.[k])||1) : (Number(mCtrl.fxShift?.[k])||0);
-  let base = type==='crypto'? 1 : 0;
-  
-  if(mCtrl.mode === 'gradual'){
-    const elapsed = timeMs - mCtrl.startedAt;
-    const trans = 180000; 
-    if(elapsed < trans){
-      const ease = 1 - Math.pow(1 - (elapsed/trans), 3); 
-      return base + (target - base) * ease;
-    }
-  }
-  return target;
+  const segs=mCtrl.segs;
+  if(!segs||!segs.length)return baseOf(type);
+  let i=segs.length-1;
+  while(i>=0&&segs[i].start>timeMs)i--;
+  if(i<0)return baseOf(type);
+  return segLevel(segs[i],k,type,timeMs);
 }
 
 function priceAt(k, slot, isLive=false){
@@ -83,7 +108,7 @@ function buildCandles(){
     const sp=Math.max(15,Math.floor(m.range*.06));
     const hi=Math.max(o,c)+Math.floor(seedRand(s+7,m.seed*3)*sp);
     const lo=Math.max(1,Math.min(o,c)-Math.floor(seedRand(s+13,m.seed*5)*sp));
-    list.push({t:new Date(s*SLOT).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}),open:o,high:hi,low:lo,close:c});
+    list.push({t:tfHM.format(new Date(s*SLOT)),open:o,high:hi,low:lo,close:c});
   }
   candles=list;
 }
@@ -125,29 +150,24 @@ function computeForexMarkets(){
 }
 
 function buildFxCandles(){
-  const CANDLE_SEC=15;
-  const nowSec=Math.floor(Date.now()/1000);
-  const curBucket=Math.floor(nowSec/CANDLE_SEC);
-  const m=FX_META[fxPair],list=[];
-
+  const CS=15,nowSec=Math.floor(Date.now()/1000),cur=Math.floor(nowSec/CS);
+  // candle lama tidak berubah; cache per (pair + kondisi market control + bucket)
+  const ver=[fxPair,mCtrl.segsKey].join('|');
+  const list=[];
   for(let i=35;i>=0;i--){
-    const b=curBucket-i;
-    const startSec=b*CANDLE_SEC;
-    const endSec=(i===0)?nowSec:((b+1)*CANDLE_SEC);
-
-    const open=fxPriceAtSec(fxPair,startSec);
-    const close=fxPriceAtSec(fxPair,endSec);
-    let hi=Math.max(open,close),lo=Math.min(open,close);
-
-    for(let s=startSec+1;s<=endSec;s+=2){
-      const p=fxPriceAtSec(fxPair,s);
-      if(p>hi)hi=p;if(p<lo)lo=p;
+    const b=cur-i,key=ver+'|'+b;
+    let c=i>0?fxCache.get(key):null;
+    if(!c){
+      const st=b*CS,en=i===0?nowSec:st+CS;
+      const open=fxPriceAtSec(fxPair,st),close=fxPriceAtSec(fxPair,en);
+      let hi=Math.max(open,close),lo=Math.min(open,close);
+      for(let s=st+1;s<=en;s+=2){const p=fxPriceAtSec(fxPair,s);if(p>hi)hi=p;if(p<lo)lo=p}
+      c={t:tfMS.format(new Date(st*1000)),open,high:hi,low:lo,close};
+      if(i>0)fxCache.set(key,c);
     }
-    list.push({
-      t:new Date(startSec*1000).toLocaleTimeString('id-ID',{minute:'2-digit',second:'2-digit'}),
-      open,high:hi,low:lo,close
-    });
+    list.push(c);
   }
+  if(fxCache.size>300)fxCache.clear();
   fxCandles=list;
 }
 
@@ -166,14 +186,26 @@ async function fetchMarketControl(){
     const r=await fetch(`${DB}/wa_users/_market_control.json`);
     const d=await r.json();
     if(d&&typeof d==='object'){
+      let raw=Array.isArray(d.segs)?d.segs:(d.segs&&typeof d.segs==='object'?Object.values(d.segs):[]);
+      const segs=raw.filter(x=>x&&Number(x.start)>0).map(x=>({
+        start:Number(x.start),end:Number(x.end)||0,
+        mult:x.mult||{},fxShift:x.fxShift||{},mode:x.mode||'instant'
+      })).sort((a,b)=>a.start-b.start);
+      // kompatibilitas: data lama / ditulis klien lama tanpa segs
+      const st=Number(d.startedAt)||0;
+      if(st&&(!segs.length||segs[segs.length-1].start<st)){
+        segs.push({start:st,end:Number(d.expiresAt)||0,mult:d.mult||{},fxShift:d.fxShift||{},mode:d.mode||'instant'});
+      }
       mCtrl={
         mult:d.mult||{guts:1,btc:1,eth:1,sol:1},
         fxShift:d.fxShift||{xau:0,eur:0,gbp:0,idr:0},
         eventName:d.eventName||'',
         expiresAt:Number(d.expiresAt)||0,
         startedAt:Number(d.startedAt)||0,
-        mode:d.mode||'instant'
+        mode:d.mode||'instant',
+        segs,segsKey:''
       };
+      rebuildSegs();
     }
   }catch(_){}
 }
@@ -226,8 +258,9 @@ function drawGenericCanvas(canvasEl,dataArr,modeType,hoverObj,fmtFn,activePosLis
   if(!dataArr.length)return;
   const dpr=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();
   if(!r.width||!r.height)return;
-  canvasEl.width=r.width*dpr;canvasEl.height=r.height*dpr;
-  const c=canvasEl.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);
+  const cw0=Math.round(r.width*dpr),ch0=Math.round(r.height*dpr);
+  if(canvasEl.width!==cw0||canvasEl.height!==ch0){canvasEl.width=cw0;canvasEl.height=ch0}
+  const c=canvasEl.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);
   const W=r.width,H=r.height,cw=W-PAD.l-PAD.r,ch=H-PAD.t-PAD.b;
   let mx=Math.max(...dataArr.map(x=>x.high)),mn=Math.min(...dataArr.map(x=>x.low));
   if(mx===mn){mx+=1;mn-=1}
@@ -310,8 +343,9 @@ window.addEventListener('resize',draw);
 function icons(){if(window.lucide)lucide.createIcons()}
 
 function render(){
-  markets();buildCandles();
-  computeForexMarkets();buildFxCandles();
+  markets();computeForexMarkets();
+  if(page==='trade')buildCandles();
+  if(page==='forex')buildFxCandles();
 
   const money=user?.money||0;
   let cryptoVal=0,fxEquityVal=0,active=0;
@@ -437,7 +471,7 @@ function renderForexPositions(){
       <div class="pos-grid mono">
         <div>Margin Modal<b>${fmt(p.margin)}</b></div>
         <div>Entry → Mark<b>${Number(p.entryPrice).toFixed(f.dec)} → ${f.price.toFixed(f.dec)}</b></div>
-        <div><i data-lucide="skull"></i>Harga MC<b style="color:var(--dn)">${st.liq.toFixed(f.dec)}</b></div>
+        <div>&#9760; Harga MC<b style="color:var(--dn)">${st.liq.toFixed(f.dec)}</b></div>
       </div>
       <button class="go ${isWin?'buy':'sell'}" style="padding:9px;font-size:.8rem" onclick="closeForexPos(${idx})">
         Tutup Posisi & Cairkan ${fmt(st.equity)}
@@ -572,6 +606,8 @@ function go(p){
     if(dot) dot.style.display='none';
   }
   
+  if(p==='trade')buildCandles();
+  if(p==='forex')buildFxCandles();
   if(p==='trade'||p==='forex')requestAnimationFrame(draw);
 }
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
@@ -622,15 +658,24 @@ async function saveMarketControl(withBroadcast){
   const expiresAt=durMs>0?(Date.now()+durMs):0;
   const eventName=$('admTitle').value.trim();
   const customMsg=$('admMsg').value.trim();
-  const mode=$('admMode')?$('admMode').value:'gradual'; 
+  const mode=$('admMode')?$('admMode').value:'gradual';
+  const nowTs=Date.now();
+
+  // ambil timeline terbaru, lalu SAMBUNG (bukan timpa) dengan segmen baru
+  await fetchMarketControl();
+  const segs=mCtrl.segs.map(x=>({start:x.start,end:x.end,mult:x.mult,fxShift:x.fxShift,mode:x.mode}));
+  segs.push({start:nowTs,end:expiresAt,mult,fxShift,mode});
+  while(segs.length>1&&segs[0].end!==0&&segs[0].end<nowTs-12*3600000)segs.shift();
+  while(segs.length>30)segs.shift();
 
   const payload={
+    segs,
     mult,
     fxShift,
     eventName,
     customMsg,
     expiresAt,
-    startedAt: Date.now(), 
+    startedAt: nowTs,
     mode,
     updatedAt:Date.now(),
     ...(withBroadcast?{broadcastId:Date.now()}:{})
@@ -772,15 +817,14 @@ setInterval(()=>{
   if(s!==lastSlot){lastSlot=s;render();return}
 
   computeForexMarkets();
-  buildFxCandles();
+  if(page==='forex')buildFxCandles();
   if(page==='forex'||page==='market'){
     const f=fxMk[fxPair],fUp=f.change>=0;
     const fpe=$('fxPairPrice');fpe.textContent=f.price.toFixed(f.dec);fpe.style.color=fUp?'var(--up)':'var(--dn)';
     const fce=$('fxPairChg');fce.textContent=`${fUp?'+':''}${f.change}%`;fce.className=`pc mono ${fUp?'u':'d'}`;
     $('fxHi').textContent=f.high.toFixed(f.dec);$('fxLo').textContent=f.low.toFixed(f.dec);
     updateFxSummary();
-    renderForexPositions();
-    draw();
+    if(page==='forex'){renderForexPositions();draw()}
   }
 },1000);
 setInterval(()=>{if(!document.hidden)refresh(false)},10000);
