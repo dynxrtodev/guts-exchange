@@ -342,7 +342,22 @@ window.addEventListener('resize',draw);
 
 function icons(){if(window.lucide)lucide.createIcons()}
 
+const tfWIB=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jakarta',hour:'numeric',hourCycle:'h23'});
+function greetWIB(){
+  const h=parseInt(tfWIB.format(new Date()),10);
+  if(h>=4&&h<11)return'Selamat pagi';
+  if(h>=11&&h<15)return'Selamat siang';
+  if(h>=15&&h<18)return'Selamat sore';
+  return'Selamat malam';
+}
+function updateGreeting(){
+  const el=$('pfGreet');if(!el)return;
+  const t=`${greetWIB()}, @${user?.username||'tamu'}!`;
+  if(el.textContent!==t)el.textContent=t;
+}
+
 function render(){
+  updateGreeting();
   markets();computeForexMarkets();
   if(page==='trade')buildCandles();
   if(page==='forex')buildFxCandles();
@@ -805,6 +820,7 @@ function toast(msg,type){
 // LOOP UTAMA 1 DETIK (Live Tick & Polling)
 setInterval(()=>{
   tickCount++;
+  updateGreeting();
   const rem=SLOT-(Date.now()%SLOT);
   const fxRem=15-(Math.floor(Date.now()/1000)%15);
   $('cd').textContent=String(Math.floor(rem/60000)).padStart(2,'0')+':'+String(Math.floor(rem%60000/1000)).padStart(2,'0');
